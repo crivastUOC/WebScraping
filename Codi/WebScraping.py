@@ -5,8 +5,9 @@ Created on Wed Apr  3 09:39:57 2019
 @author: crivas
 """
 
-# Parseja els arguments de entrada
+############## INTERPRETACIO D'ARGUMENTS I INCIIALITZACIO DE VARIABLES  ############## 
 
+# Parseja els arguments de entrada
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -18,21 +19,26 @@ ruta = args.Ruta
 
 #Si no hi ha parametres assigna una ruta i nom del fitxer per defecte
 if ruta == None :
-    ruta = "D:\Practica1.csv"
+    ruta = "D:\Cotitzacions.csv"
 
 #Assigna les urls de les pagines de les que fer scraping
 str1 = "http://www.finanzas.com/ibex-35/datos-historicos.html"
 str2 = "http://www.finanzas.com/divisas/eur-usd/datos-historicos.html"
 str3 = "http://www.finanzas.com/euro-stoxx50/datos-historicos.html"
 str4 = "http://www.finanzas.com/dow-jones/datos-historicos.html"
-        
+
+# Fixa el user-agent al dels navegadors
+ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.103 Safari/537.36"
+
+############################## FUNCIONS D'SCRAPING ###################################### 
+
 import requests
 from bs4 import BeautifulSoup
 import csv
 
 #Funcio per registrar la fila de capçalera (comuna a totes les urls)
 def FinanzasScraperHead (url, ruta):
-    page = requests.get(url)
+    page = requests.get(url, headers = {'User-Agent': ua})
     soup = BeautifulSoup(page.content, features="html.parser")
     ethead = soup.thead
 
@@ -46,7 +52,7 @@ def FinanzasScraperHead (url, ruta):
 
 #Funcio per registrar les dades d'una url
 def FinanzasScraperRow (url, ruta):
-    page = requests.get(url)
+    page = requests.get(url, headers = {'User-Agent': ua})
     soup = BeautifulSoup(page.content, features="html.parser")
     etbody = soup.tbody
 
@@ -60,14 +66,30 @@ def FinanzasScraperRow (url, ruta):
             for etb in etr.find_all ('td'):
                 lrow.append (etb.string)
             spa.writerow(lrow)
+            
+####################### VALIDACIO ROBOTS.TXT I GENERACIO DEL FITXER CSV ############## 
 
+import urllib.robotparser
 
-#Crida a les funcions amb els parametres adequats 
-FinanzasScraperHead (str1, ruta)
-FinanzasScraperRow (str1, ruta)
-FinanzasScraperRow (str2, ruta)
-FinanzasScraperRow (str3, ruta)
-FinanzasScraperRow (str4, ruta)
+#Descargar robots.txt
+rp = urllib.robotparser.RobotFileParser()
+rp.set_url("http://www.finanzas.com/robot.txt")
+rp.read()
+
+#Comprovar si es pot fer web scraping
+if rp.can_fetch(ua, "http://www.finanzas.com/images/"):
+    print("Està permés fer Web Scraping d'aquesta página")
+
+    #Crida a les funcions amb els parametres adequats 
+    FinanzasScraperHead (str1, ruta)
+    FinanzasScraperRow (str1, ruta)
+    FinanzasScraperRow (str2, ruta)
+    FinanzasScraperRow (str3, ruta)
+    FinanzasScraperRow (str4, ruta)
+else:
+    print("No Està permés fer Web Scraping d'aquesta página")
+
+################################# GENERACIO DE GRAFICQUES #############################
 
 #Generacio de gràfiques
 import pandas as pd
